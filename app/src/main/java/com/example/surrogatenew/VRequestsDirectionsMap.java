@@ -7,6 +7,10 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import android.location.Location;
+import com.google.android.gms.location.FusedLocationProviderClient;
+import com.google.android.gms.location.LocationServices;
+
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -21,12 +25,17 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.LatLng;
+import com.google.android.gms.maps.model.MarkerOptions;
 
 public class VRequestsDirectionsMap extends AppCompatActivity implements OnMapReadyCallback {
 
     private GoogleMap myMap;
     private SupportMapFragment mapFragment;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 1;
+
+    private FusedLocationProviderClient fusedLocationClient;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -45,6 +54,8 @@ public class VRequestsDirectionsMap extends AppCompatActivity implements OnMapRe
 
         // Initialize map fragment
         mapFragment = (SupportMapFragment) getSupportFragmentManager().findFragmentById(R.id.map);
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
         showDirectionsButton.setOnClickListener(view -> {
             // Show the map fragment
@@ -65,6 +76,18 @@ public class VRequestsDirectionsMap extends AppCompatActivity implements OnMapRe
                 == PackageManager.PERMISSION_GRANTED) {
             myMap.setMyLocationEnabled(true);
             myMap.getUiSettings().setMyLocationButtonEnabled(true);
+
+            // Get last known location and add marker
+            fusedLocationClient.getLastLocation()
+                    .addOnSuccessListener(this, location -> {
+                        if (location != null) {
+                            LatLng currentLatLng = new LatLng(location.getLatitude(), location.getLongitude());
+                            myMap.addMarker(new MarkerOptions().position(currentLatLng).title("You are here"));
+                            myMap.moveCamera(CameraUpdateFactory.newLatLngZoom(currentLatLng, 15f));
+                        } else {
+                            Toast.makeText(this, "Unable to get current location", Toast.LENGTH_SHORT).show();
+                        }
+                    });
         } else {
             ActivityCompat.requestPermissions(this,
                     new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
