@@ -25,7 +25,7 @@ public class MainActivity extends AppCompatActivity {
         // setContentView(R.layout.activity_main);
 
         // Create an Intent to launch VRequestsDirectionsMap
-        Intent intent = new Intent(this, VRequestsDirectionsMap.class); // Correct way to use Context // Use 'this' for the Context
+        Intent intent = new Intent(this, VolunteerRequests.class); // Correct way to use Context // Use 'this' for the Context
         startActivity(intent);
 
         // Call finish() so that when you press the back button from VRequestsDirectionsMap,

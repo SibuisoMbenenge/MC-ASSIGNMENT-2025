@@ -3,7 +3,7 @@ package com.example.surrogatenew;
 import android.Manifest;
 import android.content.pm.PackageManager;
 import android.location.Location;
-import android.os.AsyncTask; // Re-introducing AsyncTask for reverse geocoding
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.Button;
@@ -26,23 +26,24 @@ import com.google.android.libraries.places.api.model.Place;
 import com.google.android.libraries.places.widget.AutocompleteSupportFragment;
 import com.google.android.libraries.places.widget.listener.PlaceSelectionListener;
 
-import org.json.JSONArray;   // For JSON parsing
-import org.json.JSONObject;  // For JSON parsing
+import org.json.JSONArray;
+import org.json.JSONObject;
 
-import java.io.BufferedReader; // For network requests
-import java.io.IOException;    // For network requests
-import java.io.InputStream;    // For network requests
-import java.io.InputStreamReader; // For network requests
-import java.net.HttpURLConnection; // For network requests
-import java.net.URL;           // For network requests
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.lang.ref.WeakReference; // IMPORTANT: Added for WeakReference
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.Arrays;
 
 
 public class TempUserLocationActivity extends AppCompatActivity {
 
     private TextView selectedAddressTextView;
-    private LatLng selectedLatLng; // Still useful to store coordinates
-    private String selectedAddressString; // NEW: This variable will store the human-readable address
+    private LatLng selectedLatLng;
+    private String selectedAddressString; // This variable will store the human-readable address
 
     private FusedLocationProviderClient fusedLocationClient;
     private static final int LOCATION_PERMISSION_REQUEST_CODE = 101;
@@ -61,7 +62,6 @@ public class TempUserLocationActivity extends AppCompatActivity {
         if (!Places.isInitialized()) {
             Places.initialize(getApplicationContext(), "AIzaSyCpopm2bPwjo6sLGAUroXUXBMx5UUY44WY");
         }
-        // PlacesClient placesClient = Places.createClient(this); // This line is not directly used, can remove
 
         // Initialize FusedLocationProviderClient
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -98,7 +98,6 @@ public class TempUserLocationActivity extends AppCompatActivity {
         // The "Enter" button's action:
         enterButton.setOnClickListener(v -> {
             if (selectedLatLng != null && selectedAddressString != null && !selectedAddressString.isEmpty()) {
-                // Now you have both the address string and coordinates available for database entry
                 Log.d("LocationEntry", "Location stored in variable: Address='" + selectedAddressString + "', Lat=" + selectedLatLng.latitude + ", Lng=" + selectedLatLng.longitude);
                 Toast.makeText(this, "Location stored: Address='" + selectedAddressString + "'", Toast.LENGTH_LONG).show();
 
@@ -121,8 +120,7 @@ public class TempUserLocationActivity extends AppCompatActivity {
             ).addOnSuccessListener(this, location -> {
                 if (location != null) {
                     selectedLatLng = new LatLng(location.getLatitude(), location.getLongitude());
-                    // Instead of directly updating TextView with coordinates,
-                    // initiate reverse geocoding to get the address string.
+                    // NOW CALL REVERSE GEOCoding, passing 'this' (the activity) to the AsyncTask
                     startReverseGeocodingTask(selectedLatLng);
                     Toast.makeText(this, "Fetching address for current location...", Toast.LENGTH_SHORT).show();
                 } else {
@@ -162,18 +160,29 @@ public class TempUserLocationActivity extends AppCompatActivity {
      * Initiates an AsyncTask to perform reverse geocoding (coordinates to address).
      */
     private void startReverseGeocodingTask(LatLng latLng) {
-        // Construct the Geocoding API URL
         String geocodingUrl = "https://maps.googleapis.com/maps/api/geocode/json?latlng="
                 + latLng.latitude + "," + latLng.longitude
                 + "&key=AIzaSyCpopm2bPwjo6sLGAUroXUXBMx5UUY44WY"; // Use your API key here
 
-        new ReverseGeocodingTask().execute(geocodingUrl);
+        // Pass 'this' (the Activity instance) to the AsyncTask using a WeakReference
+        new ReverseGeocodingTask(this).execute(geocodingUrl);
     }
+
 
     /**
      * AsyncTask to handle the network request for reverse geocoding and JSON parsing.
+     * IMPORTANT: This is now a static inner class to prevent memory leaks.
+     * It uses a WeakReference to safely interact with the Activity.
      */
-    private class ReverseGeocodingTask extends AsyncTask<String, Void, String> {
+    private static class ReverseGeocodingTask extends AsyncTask<String, Void, String> {
+
+        // Use a WeakReference to the Activity to prevent memory leaks
+        private WeakReference<TempUserLocationActivity> activityRef;
+
+        // Constructor to receive the Activity reference
+        ReverseGeocodingTask(TempUserLocationActivity activity) {
+            activityRef = new WeakReference<>(activity);
+        }
 
         @Override
         protected String doInBackground(String... urls) {
@@ -212,37 +221,44 @@ public class TempUserLocationActivity extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(String result) {
+            // Get a strong reference to the activity
+            TempUserLocationActivity activity = activityRef.get();
+
+            // Check if the activity is still valid (not null and not finishing)
+            if (activity == null || activity.isFinishing()) {
+                Log.d("ReverseGeocoding", "Activity no longer valid, skipping UI update.");
+                return;
+            }
+
             try {
                 JSONObject jsonObject = new JSONObject(result);
-                // Check if status is "OK" and results are available
                 if ("OK".equals(jsonObject.optString("status")) && jsonObject.has("results")) {
                     JSONArray resultsArray = jsonObject.getJSONArray("results");
 
                     if (resultsArray.length() > 0) {
                         JSONObject firstResult = resultsArray.getJSONObject(0);
                         String formattedAddress = firstResult.getString("formatted_address");
-                        selectedAddressString = formattedAddress; // Store the address string
-                        selectedAddressTextView.setText("Selected: Current Location (" + formattedAddress + ")");
-                        Toast.makeText(TempUserLocationActivity.this, "Address found: " + formattedAddress, Toast.LENGTH_SHORT).show();
+                        activity.selectedAddressString = formattedAddress; // Access via activity reference
+                        activity.selectedAddressTextView.setText("Selected: Current Location (" + formattedAddress + ")"); // Access via activity reference
+                        Toast.makeText(activity, "Address found: " + formattedAddress, Toast.LENGTH_SHORT).show();
                     } else {
-                        selectedAddressString = "Address not found"; // Fallback
-                        selectedAddressTextView.setText("Selected: Current Location (Address not found)");
-                        Toast.makeText(TempUserLocationActivity.this, "No address found for current location.", Toast.LENGTH_SHORT).show();
+                        activity.selectedAddressString = "Address not found";
+                        activity.selectedAddressTextView.setText("Selected: Current Location (Address not found)");
+                        Toast.makeText(activity, "No address found for current location.", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    // Handle API error status (e.g., "ZERO_RESULTS", "OVER_QUERY_LIMIT", "REQUEST_DENIED")
                     String status = jsonObject.optString("status", "UNKNOWN_ERROR");
                     String errorMessage = jsonObject.optString("error_message", "No specific error message.");
-                    selectedAddressString = "Error: " + status;
-                    selectedAddressTextView.setText("Selected: Current Location (Error: " + status + ")");
-                    Toast.makeText(TempUserLocationActivity.this, "Geocoding API error: " + errorMessage, Toast.LENGTH_LONG).show();
+                    activity.selectedAddressString = "Error: " + status;
+                    activity.selectedAddressTextView.setText("Selected: Current Location (Error: " + status + ")");
+                    Toast.makeText(activity, "Geocoding API error: " + errorMessage, Toast.LENGTH_LONG).show();
                     Log.e("ReverseGeocoding", "Geocoding API status: " + status + ", Message: " + errorMessage);
                 }
             } catch (Exception e) {
                 Log.e("ReverseGeocoding", "Error parsing geocoding JSON: " + e.getMessage(), e);
-                selectedAddressString = "Error getting address"; // Fallback on parsing error
-                selectedAddressTextView.setText("Selected: Current Location (Error getting address)");
-                Toast.makeText(TempUserLocationActivity.this, "Failed to parse address data.", Toast.LENGTH_SHORT).show();
+                activity.selectedAddressString = "Error getting address";
+                activity.selectedAddressTextView.setText("Selected: Current Location (Error getting address)");
+                Toast.makeText(activity, "Failed to parse address data.", Toast.LENGTH_SHORT).show();
             }
         }
     }
