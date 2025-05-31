@@ -1,6 +1,5 @@
 package com.example.surrogatenew;
 
-import android.app.DownloadManager;
 import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
@@ -73,16 +72,14 @@ public class VolunteerRequests extends AppCompatActivity {
                     JSONArray jsonArray = new JSONArray(responseData);
                     runOnUiThread(() -> {
                         LinearLayout l = findViewById(R.id.requestContainer);
-                        ArrayList<String>requests = new ArrayList<>();
+                        ArrayList<String> requests = new ArrayList<>();
                         for (int i = 0; i < jsonArray.length(); i++) {
                             try {
                                 JSONObject requestInfo = jsonArray.getJSONObject(i);
                                 String fname = requestInfo.getString("FNAME");
                                 String sname = requestInfo.getString("SNAME");
                                 String items = requestInfo.getString("ITEMS");
-                                String location = requestInfo.getString("LOCATION");
-                                String uri = "http://maps.google.com/maps?q=" + Uri.encode(location);
-
+                                String location = requestInfo.getString("LOCATION"); // This is the location you want to pass
 
                                 LinearLayout row = new LinearLayout(VolunteerRequests.this);
                                 row.setOrientation(LinearLayout.HORIZONTAL);
@@ -94,7 +91,7 @@ public class VolunteerRequests extends AppCompatActivity {
 
                                 TextView requestView = new TextView(VolunteerRequests.this);
                                 requestView.setText("Name: " + fname + " " + sname + "\n" + "Items: "
-                                        + items + "\n" + "Location: " + location+"(Click to see on google maps)");
+                                        + items + "\n" + "Location: " + location + "(Click to see on google maps)");
                                 String info = requestView.getText().toString();
                                 requests.add(info);
                                 String[] lines = info.split("\n");
@@ -102,20 +99,19 @@ public class VolunteerRequests extends AppCompatActivity {
                                 if (lines.length >= 3) {
                                     String nameLine = lines[0];
                                     String itemsLine = lines[1];
-                                    String locationLine = lines[2]; // "Location: 123 Main St, Springfield"
+                                    String locationLine = lines[2];
                                     String locationText = locationLine.replace("Location: ", "").trim();
 
                                     SpannableString spannableString = new SpannableString(info);
 
-                                    // Find start and end of location line
                                     int startIndex = info.indexOf(locationLine);
                                     int endIndex = startIndex + locationLine.length();
 
-                                    // Make the location line clickable
                                     ClickableSpan clickableSpan = new ClickableSpan() {
                                         @Override
                                         public void onClick(@NonNull View widget) {
-                                            String uri = "http://maps.google.com/maps?q=" + Uri.encode(locationText);
+                                            // This is the original clickable span for text click
+                                            String uri = "http://maps.google.com/maps?daddr=" + Uri.encode(locationText);
                                             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
                                             intent.setPackage("com.google.android.apps.maps");
 
@@ -129,7 +125,7 @@ public class VolunteerRequests extends AppCompatActivity {
                                         @Override
                                         public void updateDrawState(@NonNull TextPaint ds) {
                                             super.updateDrawState(ds);
-                                            ds.setColor(Color.BLUE); // Make it look like a link
+                                            ds.setColor(Color.BLUE);
                                             ds.setUnderlineText(true);
                                         }
                                     };
@@ -137,7 +133,7 @@ public class VolunteerRequests extends AppCompatActivity {
                                     spannableString.setSpan(clickableSpan, startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
 
                                     requestView.setText(spannableString);
-                                    requestView.setMovementMethod(LinkMovementMethod.getInstance()); // Important!
+                                    requestView.setMovementMethod(LinkMovementMethod.getInstance());
                                 }
 
                                 requestView.setLayoutParams(new LinearLayout.LayoutParams(
@@ -148,83 +144,133 @@ public class VolunteerRequests extends AppCompatActivity {
                                 tickButton.setImageResource(android.R.drawable.checkbox_on_background);
                                 tickButton.setBackgroundColor(Color.TRANSPARENT);
 
-
-
-
+                                // MODIFICATION HERE: Launch VRequestsDirectionsMap with the location
                                 tickButton.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View v) {
+                                        Intent intent = new Intent(VolunteerRequests.this, VRequestsDirectionsMap.class);
+                                        intent.putExtra("request_location", location); // Pass the location string from JSON
+                                        // Also pass the name to display it on the map activity
+                                        intent.putExtra("request_name", fname + " " + sname);
+                                        // REMOVED THE LINE THAT WAS CAUSING THE JSONEXCEPTION:
+                                        // intent.putExtra("request_contact", requestInfo.getString("CONTACT")); // Assuming CONTACT field exists
+
+                                        startActivity(intent);
+
+                                        // Optional: Clear views and change title if you still want this behavior
                                         l.removeAllViews();
                                         l.addView(row);
                                         row.removeView(tickButton);
                                         toolbar.setTitle("Request Information");
-
                                     }
                                 });
 
-
                                 row.addView(requestView);
                                 row.addView(tickButton);
-
-
                                 l.addView(row);
-
-
-
 
                             } catch (JSONException e) {
                                 e.printStackTrace();
-
                             }
-
-
                         }
+
                         Button reset = findViewById(R.id.btnAllRequests);
                         reset.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View v) {
                                 l.removeAllViews();
-                                LinearLayout row = new LinearLayout(VolunteerRequests.this);
-                                row.setOrientation(LinearLayout.HORIZONTAL);
-                                row.setLayoutParams(new LinearLayout.LayoutParams(
-                                        LinearLayout.LayoutParams.MATCH_PARENT,
-                                        LinearLayout.LayoutParams.WRAP_CONTENT
-                                ));
-                                row.setPadding(16, 16, 16, 16);
+                                for (int j = 0; j < jsonArray.length(); j++) {
+                                    try {
+                                        JSONObject requestInfo = jsonArray.getJSONObject(j);
+                                        String fname = requestInfo.getString("FNAME");
+                                        String sname = requestInfo.getString("SNAME");
+                                        String items = requestInfo.getString("ITEMS");
+                                        String location = requestInfo.getString("LOCATION"); // Location for reset
 
-                                for (int j = 0; j < requests.size(); j++) {
-                                    TextView requestView = new TextView(VolunteerRequests.this);
-                                    requestView.setText(requests.get(j));
+                                        LinearLayout newRow = new LinearLayout(VolunteerRequests.this);
+                                        newRow.setOrientation(LinearLayout.HORIZONTAL);
+                                        newRow.setLayoutParams(new LinearLayout.LayoutParams(
+                                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                                LinearLayout.LayoutParams.WRAP_CONTENT
+                                        ));
+                                        newRow.setPadding(16, 16, 16, 16);
 
-                                    requestView.setLayoutParams(new LinearLayout.LayoutParams(
-                                            0, LinearLayout.LayoutParams.WRAP_CONTENT, 1
-                                    ));
+                                        TextView newRequestView = new TextView(VolunteerRequests.this);
+                                        String info = "Name: " + fname + " " + sname + "\n" + "Items: "
+                                                + items + "\n" + "Location: " + location + "(Click to see on google maps)";
+                                        newRequestView.setText(info);
 
-                                    ImageButton tickButton = new ImageButton(VolunteerRequests.this);
-                                    tickButton.setImageResource(android.R.drawable.checkbox_on_background);
-                                    tickButton.setBackgroundColor(Color.TRANSPARENT);
+                                        String[] lines = info.split("\n");
+                                        if (lines.length >= 3) {
+                                            String locationLine = lines[2];
+                                            String locationText = locationLine.replace("Location: ", "").trim();
+                                            SpannableString spannableString = new SpannableString(info);
+                                            int startIndex = info.indexOf(locationLine);
+                                            int endIndex = startIndex + locationLine.length();
 
-                                    row.addView(requestView);
-                                    row.addView(tickButton);
+                                            ClickableSpan clickableSpan = new ClickableSpan() {
+                                                @Override
+                                                public void onClick(@NonNull View widget) {
+                                                    String uri = "http://maps.google.com/maps?daddr=" + Uri.encode(locationText);
+                                                    Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(uri));
+                                                    intent.setPackage("com.google.android.apps.maps");
+                                                    if (intent.resolveActivity(widget.getContext().getPackageManager()) != null) {
+                                                        widget.getContext().startActivity(intent);
+                                                    } else {
+                                                        widget.getContext().startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(uri)));
+                                                    }
+                                                }
 
+                                                @Override
+                                                public void updateDrawState(@NonNull TextPaint ds) {
+                                                    super.updateDrawState(ds);
+                                                    ds.setColor(Color.BLUE);
+                                                    ds.setUnderlineText(true);
+                                                }
+                                            };
+                                            spannableString.setSpan(clickableSpan, startIndex, endIndex, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                            newRequestView.setText(spannableString);
+                                            newRequestView.setMovementMethod(LinkMovementMethod.getInstance());
+                                        }
 
-                                    l.addView(row);
+                                        newRequestView.setLayoutParams(new LinearLayout.LayoutParams(
+                                                0, LinearLayout.LayoutParams.WRAP_CONTENT, 1
+                                        ));
+
+                                        ImageButton newTickButton = new ImageButton(VolunteerRequests.this);
+                                        newTickButton.setImageResource(android.R.drawable.checkbox_on_background);
+                                        newTickButton.setBackgroundColor(Color.TRANSPARENT);
+
+                                        newTickButton.setOnClickListener(new View.OnClickListener() {
+                                            @Override
+                                            public void onClick(View v) {
+                                                Intent intent = new Intent(VolunteerRequests.this, VRequestsDirectionsMap.class);
+                                                intent.putExtra("request_location", location); // Pass the location string
+                                                intent.putExtra("request_name", fname + " " + sname);
+                                      //          intent.putExtra("request_contact", requestInfo.getString("CONTACT")); // Assuming CONTACT field exists
+                                                startActivity(intent);
+                                            }
+                                        });
+
+                                        newRow.addView(newRequestView);
+                                        newRow.addView(newTickButton);
+                                        l.addView(newRow);
+
+                                    } catch (JSONException e) {
+                                        e.printStackTrace();
+                                    }
                                 }
-
-
-
                             }
                         });
                     });
                 } catch (JSONException e) {
                     e.printStackTrace();
                 }
-
             }
         });
-
     }
-    public void acceptRequest(View v){
 
+    public void acceptRequest(View v) {
+        // This method seems unused based on the provided code
     }
 }

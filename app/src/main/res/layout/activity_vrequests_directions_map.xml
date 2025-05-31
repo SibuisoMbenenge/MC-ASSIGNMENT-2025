@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context=".VRequestsDirectionsMap">
+
+    <!-- Title Label -->
+    <TextView
+        android:id="@+id/tvOrderLabel"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Order/Requests Info"
+        android:textSize="18sp"
+        android:textStyle="bold"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="16dp" />
+
+    <!-- Order Info TextView (¼ of screen height) -->
+    <TextView
+        android:id="@+id/tvOrderInfo"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:background="#EEEEEE"
+        android:padding="16dp"
+        android:text="Name: John Doe\nContact: 0123456789\nLocation: Rosebank, JHB"
+        android:textSize="16sp"
+        app:layout_constraintTop_toBottomOf="@id/tvOrderLabel"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHeight_percent="0.25"
+        android:layout_margin="16dp"/>
+
+    <!-- Show Directions Button -->
+    <Button
+        android:id="@+id/btnShowDirections"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Show Directions"
+        app:layout_constraintTop_toBottomOf="@id/tvOrderInfo"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginTop="16dp" />
+
+    <!-- Google Maps Fragment -->
+    <androidx.fragment.app.FragmentContainerView
+        android:id="@+id/map"
+        android:name="com.google.android.gms.maps.SupportMapFragment"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        android:visibility="gone"
+        app:layout_constraintTop_toBottomOf="@id/btnShowDirections"
+        app:layout_constraintBottom_toTopOf="@+id/btnBack"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_margin="16dp" />
+
+    <!-- Back Button (Bottom Left) -->
+    <Button
+        android:id="@+id/btnBack"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Back"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:layout_margin="16dp" />
+
+    <!-- Take Order Button (Bottom Right) -->
+    <Button
+        android:id="@+id/btnTakeOrder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Take Order"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toEndOf="@id/btnBack"
+        app:layout_constraintEnd_toStartOf="@id/btnFinishOrder"
+        android:layout_marginBottom="16dp"
+        />
+
+
+    <!-- Finish Order Button (Below Take Order) -->
+    <Button
+        android:id="@+id/btnFinishOrder"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Finish Order"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:layout_marginEnd="16dp"
+        android:layout_marginBottom="16dp"/>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

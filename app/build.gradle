@@ -33,9 +33,23 @@ dependencies {
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
-    implementation 'com.squareup.okhttp3:okhttp:4.3.0'
+
+    // Remove the duplicate okhttp dependency.  It's not needed for the code you've shown.
+    implementation 'com.squareup.okhttp3:okhttp:4.10.0' // Keep this if you use it elsewhere
+
     implementation libs.constraintlayout
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core
+
+    // Use the latest versions of play-services-location and play-services-maps
+    implementation 'com.google.android.gms:play-services-location:21.3.0'
+    implementation 'com.google.android.gms:play-services-maps:19.2.0'
+
+    // Add the android-maps-utils dependency for PolyUtil
+    implementation 'com.google.maps.android:android-maps-utils:3.13.0'
+
+    // For Google Places SDK for Android
+    implementation 'com.google.android.libraries.places:places:3.4.0'
+    implementation 'com.google.android.libraries.places:places:4.3.1'
 }
